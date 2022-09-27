@@ -4,7 +4,7 @@ from time import sleep
 from telnetlib import Telnet
 from ftplib import FTP
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 TELNET_USER = 'root'
 TELNET_PASSWORD = 'Zte521'
@@ -15,11 +15,10 @@ REBOOT_TIMEOUT = 60*3
 
 
 class Zte(object):
-    def __init__(self, host, patched_fw_flashing, ftp_only, ignore_version_check):
+    def __init__(self, host, patched_fw_flashing, ftp_only):
         self.host = host
         self.patched_fw_flashing = patched_fw_flashing
         self.ftp_only = ftp_only
-        self.ignore_version_check = ignore_version_check
         self.telnet = Telnet()
 
     def login(self, timeout):
@@ -48,10 +47,6 @@ class Zte(object):
 
         return login_success
 
-
-    def verify_device_version(self):
-        return True
-
     def telnet_write_and_wait_for_prompt(self, data):
         self.telnet.write(data + b" \n")
         return self.telnet.read_until(b"# ", TIMEOUT)
@@ -63,10 +58,10 @@ class Zte(object):
         self.telnet_write_and_wait_for_prompt(b"sendcmd 1 DB save")
 
     def reboot(self):
-        sleep(5)
         print('Rebooting')
+        sleep(5)
         self.telnet.write(b"reboot \n")
-        sleep(60)
+        sleep(60) # TODO: wait for device to restart instead of sleep
 
     def backup_fw_flashing(self):
         result = self.telnet_write_and_wait_for_prompt(b"ls /bin/fw_flashing.orig")
@@ -97,17 +92,17 @@ class Zte(object):
         print('FTP response:{0}'.format(ftp_response))
 
         if "226" in ftp_response:
-            print('copying back to /bin/fw_flashing')
+            sleep(5) # TODO: Understand why on one device cp command did not execute
+            print('copying {0} back to /bin/fw_flashing'.format(self.patched_fw_flashing))
             self.telnet_write_and_wait_for_prompt(b"cp /mnt/" + self.patched_fw_flashing.encode('ascii') + b"/bin/fw_flashing")
 
     def execute(self):
         if not self.ftp_only:
             if self.login(TIMEOUT):
-                if self.verify_device_version():
-                    self.enable_ftp()
-                    self.reboot()
-                    self.telnet.close()
-                    print('Logging in after reboot')
+                self.enable_ftp()
+                self.reboot()
+                self.telnet.close()
+                print('Logging in after reboot')
 
         if self.login(TIMEOUT):
             self.backup_fw_flashing()
@@ -121,9 +116,8 @@ class Zte(object):
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', type=str, required=False, help='Patched fw_flashing file for the specific version running on the ZTE')
-    parser.add_argument('--host', type=str, required=False, help='Host IP address. Default is 192.168.1.1')
+    parser.add_argument('--zte_ip', type=str, required=False, help='IP of ZTE device. Default is 192.168.1.1')
     parser.add_argument('--ftp_only', default=False, action='store_true', help='True = Skip enabling the FTP server and reboot.')
-    parser.add_argument('--ignore_version_check', default=False, action='store_true', help='TODO: True = Skip checking bootloader version')
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -133,11 +127,11 @@ if __name__ == '__main__':
     if args.file:
         patched_fw_flashing = args.file
 
-    host = "192.168.1.1"
-    if args.host:
-        host = args.host
+    zte_ip = "192.168.1.1"
+    if args.zte_ip:
+        zte_ip = args.zte_ip
 
-    zte = Zte(host, patched_fw_flashing, args.ftp_only, args.ignore_version_check)
+    zte = Zte(zte_ip, patched_fw_flashing, args.ftp_only)
 
     try:
         zte.execute()
