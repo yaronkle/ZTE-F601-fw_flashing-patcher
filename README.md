@@ -10,10 +10,10 @@ After the script succeeds it is possible to flash any 6.0.1 version on the devic
 
 ## usage instructions
 
-zte_fw_flashing.py [optional --file] [optional --host] [optional --ftp_only]
+zte_fw_flashing.py [optional --file] [optional --zte_ip] [optional --ftp_only]
 
 --file < patched fw_flashing file > if no file given then script will try to find fw_flashing.patched_6.0.10T12 in the current folder
 
---host < ip of ZTE box > If no ip is given then script will use 192.168.1.1 as the ip of the ZTE box
+--zte_ip < ip of ZTE box > If no ip is given then script will use 192.168.1.1 as the ip of the ZTE
 
 --ftp_only Just push the file using FTP. Don't try to re-enable FTP service
