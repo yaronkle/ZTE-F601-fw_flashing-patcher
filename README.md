@@ -18,3 +18,5 @@ zte_fw_flashing.py [optional --file] [optional --zte_ip] [optional --ftp_only]
 --zte_ip < ip of ZTE box > If no ip is given then script will use 192.168.1.1 as the ip of the ZTE
 
 --ftp_only Just push the file using FTP. Don't try to re-enable FTP service
+
+If no arguments are given, the script will push fw_flashing.patched_6.0.10T12 to 192.168.1.1
