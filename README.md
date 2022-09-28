@@ -5,8 +5,9 @@ The fw_flashing binary on the device checks the version.
 
 The following repository has a patched6.0.10P1T12 binary that allows downgrading.
 The python script backs up the fw_flashing on the device and pushes the patched version instead.
-
 After the script succeeds it is possible to flash any 6.0.1 version on the device.
+
+If there is demand, subsequent updates will include the actual patching of the fw_flashing binary that is installed on a given device.
 
 ## usage instructions
 
