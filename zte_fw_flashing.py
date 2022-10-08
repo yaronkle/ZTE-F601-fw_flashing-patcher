@@ -4,7 +4,7 @@ from time import sleep
 from telnetlib import Telnet
 from ftplib import FTP
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 TELNET_USER = 'root'
 TELNET_PASSWORD = 'Zte521'
@@ -121,6 +121,8 @@ def parse_arguments():
     return parser.parse_args()
 
 if __name__ == '__main__':
+    print('zte_fw_flashing {0}\n'.format(__version__))
+
     args = parse_arguments()
 
     patched_fw_flashing = "fw_flashing.patched_6.0.10T12"
