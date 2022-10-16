@@ -1,10 +1,11 @@
 import sys
 import argparse
+import os.path
 from time import sleep
 from telnetlib import Telnet
 from ftplib import FTP
 
-__version__ = "1.0.2"
+__version__ = "1.0.4"
 
 TELNET_USER = 'root'
 TELNET_PASSWORD = 'Zte521'
@@ -28,7 +29,7 @@ class Zte(object):
             telnet_port = 23
             self.telnet.open(self.host, telnet_port, TIMEOUT)
         except Exception as e:
-            print('Cound not connect {0}'.format(e))
+            print('Error could not connect {0}'.format(e))
             return False
 
         result = self.telnet.read_until(b"Login: ", TIMEOUT)
@@ -43,7 +44,7 @@ class Zte(object):
         if login_success:
             print('telnet successfully logged in')
         else:
-            print('Could not telnet device')
+            print('Error could not telnet device')
 
         return login_success
 
@@ -75,7 +76,7 @@ class Zte(object):
 
     def transfer_patched_file(self):
 
-        print('setting up file for ftp')
+        print('Setting up file for ftp')
         self.telnet_write_and_wait_for_prompt(b"echo aa > /mnt/" + self.patched_fw_flashing.encode('ascii'))
         self.telnet_write_and_wait_for_prompt(b"chmod 777 /mnt/" + self.patched_fw_flashing.encode('ascii'))
 
@@ -92,11 +93,13 @@ class Zte(object):
         print('FTP response:{0}'.format(ftp_response))
 
         if "226" in ftp_response:
-            sleep(5) # TODO: Understand why on one device cp command did not execute
-            print('copying {0} back to /bin/fw_flashing'.format(self.patched_fw_flashing))
-            self.telnet_write_and_wait_for_prompt(b"cp /mnt/" + self.patched_fw_flashing.encode('ascii') + b"/bin/fw_flashing")
+            self.telnet_write_and_wait_for_prompt(b"cp /mnt/" + self.patched_fw_flashing.encode('ascii') + b" /bin/fw_flashing")
 
     def execute(self):
+        if not os.path.exists(self.patched_fw_flashing):
+            print('Error file {0} does not exit\n'.format(self.patched_fw_flashing))
+
+
         if not self.ftp_only:
             if self.login(TIMEOUT):
                 self.enable_ftp()
@@ -135,12 +138,16 @@ if __name__ == '__main__':
 
     zte = Zte(zte_ip, patched_fw_flashing, args.ftp_only)
 
+    cp_command = b"cp /mnt/" + patched_fw_flashing.encode('ascii') + b"/bin/fw_flashing"
+    print(cp_command)
+
     try:
-        zte.execute()
+        #zte.execute()
         input("Press Enter to continue...")
 
     except Exception as e:
-        print('zte_fw_flashing failed {0}'.format(e))
+        print('Error zte_fw_flashing failed {0}'.format(e))
+        input("Press Enter to continue...")
 
 
 
