@@ -5,7 +5,7 @@ from time import sleep
 from telnetlib import Telnet
 from ftplib import FTP
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 TELNET_USER = 'root'
 TELNET_PASSWORD = 'Zte521'
@@ -138,11 +138,8 @@ if __name__ == '__main__':
 
     zte = Zte(zte_ip, patched_fw_flashing, args.ftp_only)
 
-    cp_command = b"cp /mnt/" + patched_fw_flashing.encode('ascii') + b"/bin/fw_flashing"
-    print(cp_command)
-
     try:
-        #zte.execute()
+        zte.execute()
         input("Press Enter to continue...")
 
     except Exception as e:
