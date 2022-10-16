@@ -5,7 +5,7 @@ from time import sleep
 from telnetlib import Telnet
 from ftplib import FTP
 
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 TELNET_USER = 'root'
 TELNET_PASSWORD = 'Zte521'
@@ -98,23 +98,22 @@ class Zte(object):
     def execute(self):
         if not os.path.exists(self.patched_fw_flashing):
             print('Error file {0} does not exit\n'.format(self.patched_fw_flashing))
+        else:
+            if not self.ftp_only:
+                if self.login(TIMEOUT):
+                    self.enable_ftp()
+                    self.reboot()
+                    self.telnet.close()
+                    print('Logging in after reboot')
 
-
-        if not self.ftp_only:
             if self.login(TIMEOUT):
-                self.enable_ftp()
-                self.reboot()
-                self.telnet.close()
-                print('Logging in after reboot')
+                self.backup_fw_flashing()
+                self.transfer_patched_file()
 
-        if self.login(TIMEOUT):
-            self.backup_fw_flashing()
-            self.transfer_patched_file()
+                print('Patching finished.')
+                print('You can now flash firmware')
 
-            print('Patching finished.')
-            print('You can now flash firmware')
-
-        self.telnet.close()
+            self.telnet.close()
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
