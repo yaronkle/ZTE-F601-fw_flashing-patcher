@@ -5,7 +5,7 @@ from time import sleep
 from telnetlib import Telnet
 from ftplib import FTP
 
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 
 TELNET_USER = 'root'
 TELNET_PASSWORD = 'Zte521'
@@ -66,7 +66,6 @@ class Zte(object):
 
     def backup_fw_flashing(self):
         result = self.telnet_write_and_wait_for_prompt(b"ls /bin/fw_flashing.orig")
-        print('ls result {0}'.format(result))
 
         if 'No such file'.encode('utf-8') in result:
             print('Backing up /bin/fw_flashing to /bin/fw_flashing.orig')
@@ -74,11 +73,16 @@ class Zte(object):
         else:
             print('fw_flashing already backed up as /bin/fw_flashing.orig')
 
-    def transfer_patched_file(self):
-
+    def create_all_permissions_file_in_mnt(self):
         print('Setting up file for ftp')
+        # User admin admin does not have write access to folder /mnt/
+        # In order to overcome this, create a dummy file in /mnt with all permissions 777
+        # ftp client will be overwrite that file
         self.telnet_write_and_wait_for_prompt(b"echo aa > /mnt/" + self.patched_fw_flashing.encode('ascii'))
         self.telnet_write_and_wait_for_prompt(b"chmod 777 /mnt/" + self.patched_fw_flashing.encode('ascii'))
+
+    def transfer_patched_file(self):
+        self.create_all_permissions_file_in_mnt()
 
         print('FTP device')
         ftp = FTP()
@@ -102,6 +106,7 @@ class Zte(object):
             if not self.ftp_only:
                 if self.login(TIMEOUT):
                     self.enable_ftp()
+                    # reboot is required for FTP to be enabled
                     self.reboot()
                     self.telnet.close()
                     print('Logging in after reboot')
