@@ -5,21 +5,26 @@ from time import sleep
 from telnetlib import Telnet
 from ftplib import FTP
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
+ZTE_IP = "192.168.1.1"
 TELNET_USER = 'root'
 TELNET_PASSWORD = 'Zte521'
 FTP_USER = 'admin'
 FTP_PASSWORD = 'admin'
+PATCHED_FW_FLASHING = "fw_flashing.patched_6.0.10T12"
 TIMEOUT = 4
 REBOOT_TIMEOUT = 60*3
 
-
 class Zte(object):
-    def __init__(self, host, patched_fw_flashing, ftp_only):
-        self.host = host
+    def __init__(self, zte_ip, patched_fw_flashing, ftp_only, telnet_user, telnet_password, ftp_user, ftp_password):
+        self.zte_ip = zte_ip
         self.patched_fw_flashing = patched_fw_flashing
         self.ftp_only = ftp_only
+        self.telnet_user = telnet_user
+        self.telnet_password = telnet_password
+        self.ftp_user = ftp_user
+        self.ftp_password = ftp_password
         self.telnet = Telnet()
 
     def login(self, timeout):
@@ -27,7 +32,7 @@ class Zte(object):
         print("Connecting via telnet")
         try:
             telnet_port = 23
-            self.telnet.open(self.host, telnet_port, TIMEOUT)
+            self.telnet.open(self.zte_ip, telnet_port, TIMEOUT)
         except Exception as e:
             print('Error could not connect {0}'.format(e))
             return False
@@ -35,9 +40,9 @@ class Zte(object):
         result = self.telnet.read_until(b"Login: ", TIMEOUT)
 
         if len(result) > 0:
-            self.telnet.write(TELNET_USER.encode('ascii') +b"\n")
+            self.telnet.write(self.telnet_user.encode('ascii') +b"\n")
             self.telnet.read_until(b"Password: ", TIMEOUT)
-            self.telnet.write(TELNET_PASSWORD.encode('ascii') +b"\n")
+            self.telnet.write(self.telnet_password.encode('ascii') +b"\n")
             result = self.telnet.read_until(b"# ", TIMEOUT)
 
         login_success = len(result) >= 2 and result[-2:] == b"# "
@@ -86,8 +91,8 @@ class Zte(object):
 
         print('FTP device')
         ftp = FTP()
-        ftp.connect(self.host)
-        ftp.login(FTP_USER, FTP_PASSWORD)
+        ftp.connect(self.zte_ip)
+        ftp.login(self.ftp_user, self.ftp_password)
 
         ftp_response = ""
         print('Pushing patched binary to device')
@@ -121,26 +126,24 @@ class Zte(object):
             self.telnet.close()
 
 def parse_arguments():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--file', type=str, required=False, help='Patched fw_flashing file for the specific version running on the ZTE')
-    parser.add_argument('--zte_ip', type=str, required=False, help='IP of ZTE device. Default is 192.168.1.1')
+    parser.add_argument('--zte_ip', type=str, default=str(ZTE_IP), required=False, help='IP of ZTE device.')
     parser.add_argument('--ftp_only', default=False, action='store_true', help='True = Skip enabling the FTP server and reboot.')
+    parser.add_argument('--telnet_user', type=str, default=str(TELNET_USER), required=False, help='Telnet username')
+    parser.add_argument('--telnet_password', type=str, default=str(TELNET_PASSWORD), required=False, help='Telnet password')
+    parser.add_argument('--ftp_user', type=str, default=str(FTP_USER), required=False, help='FTP username')
+    parser.add_argument('--ftp_password', type=str, default=str(FTP_PASSWORD), required=False, help='FTP password')
+    parser.add_argument('--patched_fw_flashing', type=str, default=str(PATCHED_FW_FLASHING), required=False, help='Name of the patched fw_flashing file that allows downgrade')
     return parser.parse_args()
+
 
 if __name__ == '__main__':
     print('zte_fw_flashing {0}\n'.format(__version__))
 
     args = parse_arguments()
 
-    patched_fw_flashing = "fw_flashing.patched_6.0.10T12"
-    if args.file:
-        patched_fw_flashing = args.file
-
-    zte_ip = "192.168.1.1"
-    if args.zte_ip:
-        zte_ip = args.zte_ip
-
-    zte = Zte(zte_ip, patched_fw_flashing, args.ftp_only)
+    zte = Zte(args.zte_ip, args.patched_fw_flashing, args.ftp_only, args.telnet_user, args.telnet_password, args.ftp_user, args.ftp_password)
 
     try:
         zte.execute()
